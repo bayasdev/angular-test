@@ -22,7 +22,7 @@ export class RoleGuard {
     return this.authService.currentUser$.pipe(
       take(1),
       switchMap((user) => {
-        if (!user || !user.roleCode) {
+        if (!user || !user.role) {
           this.notificationService.error(
             'Acceso denegado. No tienes un rol asignado.'
           );
@@ -30,8 +30,8 @@ export class RoleGuard {
           return of(false);
         }
 
-        // Check if the user's roleCode is in the expected roles directly
-        if (expectedRoles.includes(user.roleCode)) {
+        // Check if the user's role is in the expected roles directly
+        if (expectedRoles.includes(user.role)) {
           return of(true);
         }
 
@@ -39,9 +39,9 @@ export class RoleGuard {
           'No tienes permiso para acceder a esta página.'
         );
         // Redirect based on role
-        if (user.roleCode === 'analyst') {
+        if (user.role === 'analyst') {
           this.router.navigate(['/analyst']);
-        } else if (user.roleCode === 'manager') {
+        } else if (user.role === 'manager') {
           this.router.navigate(['/sales-manager']);
         } else {
           this.router.navigate(['/login']);

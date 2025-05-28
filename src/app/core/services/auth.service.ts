@@ -45,18 +45,10 @@ export class AuthService {
     return this.apiService.validateUser(username, password).pipe(
       switchMap((users) => {
         if (users && users.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const apiUser = users[0] as any;
-          const user: User = {
-            id: apiUser.id,
-            username: apiUser.username,
-            roleCode: apiUser.role,
-            name: `${apiUser.name.first} ${apiUser.name.last}`,
-            picture: apiUser.picture,
-          };
+          const user = users[0];
           return this.apiService.getRoles().pipe(
             map((roles) => {
-              const userRole = roles.find((r) => r.code === user.roleCode);
+              const userRole = roles.find((r) => r.code === user.role);
               if (!userRole) {
                 throw new Error('Rol no encontrado para el usuario.');
               }
@@ -87,12 +79,12 @@ export class AuthService {
 
   getUserRole(): Observable<Role | undefined> {
     const currentUser = this.currentUserSubject.getValue();
-    if (!currentUser || !currentUser.roleCode) {
+    if (!currentUser || !currentUser.role) {
       return of(undefined);
     }
     return this.apiService
       .getRoles()
-      .pipe(map((roles) => roles.find((r) => r.code === currentUser.roleCode)));
+      .pipe(map((roles) => roles.find((r) => r.code === currentUser.role)));
   }
 
   getCurrentUserSnapshot(): User | null {

@@ -28,7 +28,7 @@ import {
           <div class="space-y-2">
             <p>
               <span class="font-medium text-gray-600">Nombre:</span>
-              {{ user.name }}
+              {{ user.name.first }} {{ user.name.last }}
             </p>
             <p>
               <span class="font-medium text-gray-600">Email (Username):</span>
@@ -40,15 +40,12 @@ import {
               <span class="font-medium text-gray-600">Código:</span>
               {{ user.id }}
             </p>
-            <p>
-              <span class="font-medium text-gray-600">Rol:</span>
-              {{ user.roleCode | titlecase }}
-            </p>
+            <p class="text-sm text-gray-500">{{ user.role | titlecase }}</p>
           </div>
           <div class="flex items-center justify-center">
             <img
-              *ngIf="user.picture?.large"
-              [src]="user.picture?.large"
+              *ngIf="user.picture.large"
+              [src]="user.picture.large"
               alt="Foto de perfil"
               class="w-20 h-20 rounded-full"
             />

@@ -67,9 +67,9 @@ export class LoginComponent implements OnInit {
     this.authService.login(username, password).subscribe({
       next: (user: User) => {
         this.notificationService.success('Inicio de sesión exitoso!');
-        if (user.roleCode === 'analyst') {
+        if (user.role === 'analyst') {
           this.router.navigate(['/analyst']);
-        } else if (user.roleCode === 'manager') {
+        } else if (user.role === 'manager') {
           this.router.navigate(['/sales-manager']);
         } else {
           this.notificationService.warning(
