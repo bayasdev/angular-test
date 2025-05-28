@@ -1,0 +1,35 @@
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-semibold text-gray-800">
+      Panel del Analista de Promociones
+    </h2>
+    <app-button
+      *ngIf="canCreateNewList(currentPromotionList$ | async)"
+      variant="secondary"
+      size="sm"
+      (click)="createNewList()"
+    >
+      Nueva Lista de Promoción
+    </app-button>
+  </div>
+
+  <app-promotion-form
+    *ngIf="currentPromotionList$ | async as list; else noListTpl"
+  >
+    <!-- Promotion form will interact with the current list via PromotionService -->
+  </app-promotion-form>
+
+  <app-promotion-list-display
+    *ngIf="currentPromotionList$ | async as list; else noListTpl"
+  >
+    <!-- Promotion list display will show items from the current list -->
+  </app-promotion-list-display>
+
+  <ng-template #noListTpl>
+    <app-alert
+      type="info"
+      message="No hay una lista de promoción activa. Crea una nueva para comenzar."
+      class="mt-4"
+    ></app-alert>
+  </ng-template>
+</div>

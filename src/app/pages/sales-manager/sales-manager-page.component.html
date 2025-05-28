@@ -1,0 +1,115 @@
+<div
+  class="space-y-6"
+  *ngIf="currentPromotionList$ | async as list; else noListOrWrongState"
+>
+  <app-card *ngIf="list.status === 'APROBACION'; else wrongStateForManager">
+    <app-card-header>
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-semibold text-gray-800">
+          Revisión de Lista de Promociones
+        </h2>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">
+        ID: {{ list.id }} - Estado:
+        <app-badge
+          [text]="list.status | titlecase"
+          variant="primary"
+        ></app-badge>
+      </p>
+    </app-card-header>
+    <app-card-content>
+      <app-alert
+        *ngIf="list.items.length === 0"
+        type="info"
+        message="Esta lista de promoción no tiene productos."
+        class="mb-4"
+      ></app-alert>
+      <app-table
+        *ngIf="list.items.length > 0"
+        [data]="list.items"
+        [columns]="columns"
+        class="mt-4"
+      >
+      </app-table>
+    </app-card-content>
+    <app-card-footer
+      *ngIf="list.status === 'APROBACION' && list.items.length > 0"
+    >
+      <div class="flex justify-end space-x-3">
+        <app-button
+          variant="destructive"
+          (click)="returnToAnalyst()"
+          [disabled]="!canReturnToAnalyst"
+          title="Devolver con items rechazados para que el analista los corrija."
+        >
+          ENVIAR A EDICIÓN
+        </app-button>
+        <app-button
+          variant="primary"
+          (click)="finalizeApproval()"
+          [disabled]="!canFinalize"
+          title="Aprobar todos los items y finalizar la lista."
+        >
+          APROBAR LISTA DE PROMOS
+        </app-button>
+      </div>
+    </app-card-footer>
+  </app-card>
+
+  <ng-template #wrongStateForManager>
+    <app-alert
+      type="info"
+      [message]="
+        'La lista de promoción con ID: ' +
+        list.id +
+        ' está en estado ' +
+        (list.status | titlecase) +
+        '. Solo se pueden revisar listas en estado APROBACION.'
+      "
+      class="mt-6"
+    ></app-alert>
+  </ng-template>
+</div>
+
+<ng-template #noListOrWrongState>
+  <app-alert
+    type="info"
+    message="No existen Promociones activas para revisar en este momento."
+    class="mt-6"
+  ></app-alert>
+</ng-template>
+
+<!-- Cell Templates for Sales Manager Table -->
+<ng-template #priceCellSm let-value>
+  {{ value | currency : "USD" : "symbol" : "1.2-2" }}
+</ng-template>
+
+<ng-template #statusCellSm let-item>
+  <app-badge
+    [text]="item.status | titlecase"
+    [variant]="getBadgeVariant(item.status)"
+  ></app-badge>
+</ng-template>
+
+<ng-template #managerActionsCell let-item>
+  <div class="space-x-2" *ngIf="listStatus === 'APROBACION'">
+    <app-button
+      variant="primary"
+      size="sm"
+      (click)="updateItemStatus(item, 'approved')"
+      [disabled]="item.status === 'approved'"
+      title="Aprobar este item"
+    >
+      Aprobar
+    </app-button>
+    <app-button
+      variant="destructive"
+      size="sm"
+      (click)="updateItemStatus(item, 'rejected')"
+      [disabled]="item.status === 'rejected'"
+      title="Rechazar este item"
+    >
+      Rechazar
+    </app-button>
+  </div>
+</ng-template>

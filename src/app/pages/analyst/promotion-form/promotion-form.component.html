@@ -1,0 +1,120 @@
+<app-card class="mb-6">
+  <app-card-header>
+    <h3 class="text-lg font-semibold text-gray-800">
+      Añadir Producto a Promoción
+    </h3>
+  </app-card-header>
+  <app-card-content>
+    <form
+      [formGroup]="promotionItemForm"
+      (ngSubmit)="onSubmit()"
+      class="space-y-4"
+    >
+      <app-select
+        label="Producto"
+        formControlName="product"
+        [options]="(productOptions$ | async) || []"
+        placeholder="Seleccione un producto"
+        [class]="
+          promotionItemForm.get('product')?.hasError('required') &&
+          promotionItemForm.get('product')?.touched
+            ? 'border-red-500'
+            : ''
+        "
+        errorMessage="Debe seleccionar un producto."
+      >
+        <!-- Custom option template to disable already added products -->
+        <ng-template let-option="option">
+          <option
+            [ngValue]="option.value"
+            [disabled]="isProductDisabled(option.value)"
+          >
+            {{ option.label }}
+            <span *ngIf="isProductDisabled(option.value)">(Ya en lista)</span>
+          </option>
+        </ng-template>
+      </app-select>
+
+      <div
+        *ngIf="selectedProduct"
+        class="p-3 bg-gray-50 rounded-md text-sm space-y-1"
+      >
+        <p>
+          <strong>Precio de Lista:</strong>
+          {{
+            selectedProduct.listPrice | currency : "USD" : "symbol" : "1.2-2"
+          }}
+        </p>
+        <p>
+          <strong>Cantidad Mín. Promoción:</strong>
+          {{ selectedProduct.minPromotionQuantity }}
+        </p>
+        <p>
+          <strong>Cantidad Máx. Promoción:</strong>
+          {{ selectedProduct.maxPromotionQuantity }}
+        </p>
+        <p>
+          <strong>Precio Mín. Promoción:</strong>
+          {{
+            selectedProduct.minPromotionPrice
+              | currency : "USD" : "symbol" : "1.2-2"
+          }}
+        </p>
+      </div>
+
+      <app-input
+        type="number"
+        label="Cantidad en Promoción"
+        formControlName="selectedQuantity"
+        placeholder="Ej: 10"
+        [errorMessage]="
+          promotionItemForm.get('selectedQuantity')?.hasError('required')
+            ? 'Cantidad requerida.'
+            : promotionItemForm.get('selectedQuantity')?.hasError('min')
+            ? 'Cantidad debe ser al menos ' +
+              selectedProduct?.minPromotionQuantity +
+              '.'
+            : promotionItemForm.get('selectedQuantity')?.hasError('max')
+            ? 'Cantidad no debe exceder ' +
+              selectedProduct?.maxPromotionQuantity +
+              '.'
+            : promotionItemForm.get('selectedQuantity')?.hasError('pattern')
+            ? 'Cantidad debe ser un número entero positivo.'
+            : 'Cantidad inválida.'
+        "
+      ></app-input>
+
+      <app-input
+        type="number"
+        label="Precio Promocional (por unidad)"
+        formControlName="promotionalPrice"
+        placeholder="Ej: 99.99"
+        [errorMessage]="promotionalPriceErrorMessage"
+      ></app-input>
+
+      <app-button
+        type="submit"
+        variant="primary"
+        class="w-full !mt-6"
+        [disabled]="
+          promotionItemForm.invalid ||
+          !selectedProduct ||
+          (currentPromotionList?.status !== 'EDICION' &&
+            !isEditingRejectedItem(selectedProduct.id || -1))
+        "
+      >
+        Añadir/Actualizar Producto
+      </app-button>
+      <p
+        *ngIf="
+          currentPromotionList?.status !== 'EDICION' &&
+          !isEditingRejectedItem(selectedProduct?.id || -1)
+        "
+        class="text-xs text-yellow-600 text-center"
+      >
+        La lista no está en modo 'EDICIÓN'. Solo los items rechazados pueden ser
+        actualizados.
+      </p>
+    </form>
+  </app-card-content>
+</app-card>

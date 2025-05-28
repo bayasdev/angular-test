@@ -1,0 +1,68 @@
+<div [ngClass]="tableContainerClass">
+  <table [ngClass]="tableClass">
+    <thead class="bg-gray-50">
+      <tr>
+        <th
+          *ngFor="let col of columns"
+          scope="col"
+          class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider {{
+            col.headerClass || ''
+          }}"
+        >
+          {{ col.header }}
+        </th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      <tr *ngFor="let item of data">
+        <td
+          *ngFor="let col of columns"
+          class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 {{
+            col.cellClass || ''
+          }}"
+        >
+          <ng-container *ngIf="col.cellRenderer; else defaultCell">
+            <ng-container
+              *ngTemplateOutlet="
+                col.cellRenderer;
+                context: {
+                  $implicit: item,
+                  value: getColumnValue(item, col.key),
+                  col: col
+                }
+              "
+            ></ng-container>
+          </ng-container>
+          <ng-template #defaultCell>
+            {{ getColumnValue(item, col.key) }}
+          </ng-template>
+        </td>
+      </tr>
+      <tr *ngIf="data.length === 0">
+        <td
+          [attr.colspan]="columns.length"
+          class="px-6 py-4 text-center text-sm text-gray-500"
+        >
+          No data available
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 
+  Example of how to use with a custom cell template for a specific column:
+  <app-table [data]="myData" [columns]="myColumns">
+    <ng-template let-item let-value="value" let-col="col" #customStatusCell>
+      <span [ngClass]="value === 'Active' ? 'text-green-500' : 'text-red-500'">
+        {{ value }}
+      </span>
+    </ng-template>
+  </app-table>
+
+  And in your component.ts for myColumns:
+  this.myColumns = [
+    { key: 'name', header: 'Name' },
+    { key: 'status', header: 'Status', cellRenderer: this.customStatusCellTemplateRef }, // Assuming you get TemplateRef via @ViewChild
+  ];
+-->

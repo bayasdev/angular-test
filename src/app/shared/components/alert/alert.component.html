@@ -1,0 +1,5 @@
+<div *ngIf="message" [ngClass]="alertClasses" role="alert">
+  <span class="font-medium">{{ type | titlecase }}: </span> {{ message }}
+  <ng-content></ng-content>
+  <!-- For additional content like close buttons -->
+</div>

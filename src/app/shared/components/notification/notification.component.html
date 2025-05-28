@@ -1,0 +1,30 @@
+<div class="fixed top-4 right-4 z-50 space-y-2 min-w-[320px]">
+  <div
+    *ngFor="let notification of notifications"
+    [@fadeInOut]
+    class="p-4 rounded-md shadow-lg text-white flex items-center space-x-3 cursor-pointer"
+    [ngClass]="getAlertClass(notification.type)"
+    (click)="removeNotification(notification)"
+    (keyup.enter)="removeNotification(notification)"
+    tabindex="0"
+    role="alert"
+  >
+    <!-- Icon -->
+    <span
+      class="text-xl font-bold"
+      [innerHTML]="getIconHtml(notification.type)"
+    ></span>
+
+    <!-- Message -->
+    <span class="flex-1">{{ notification.message }}</span>
+
+    <!-- Close button -->
+    <button
+      (click)="removeNotification(notification); $event.stopPropagation()"
+      class="ml-auto text-lg leading-none hover:opacity-75 transition-opacity"
+      aria-label="Close notification"
+    >
+      ✕
+    </button>
+  </div>
+</div>

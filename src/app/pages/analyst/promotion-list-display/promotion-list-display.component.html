@@ -1,0 +1,81 @@
+<app-card *ngIf="currentPromotionList$ | async as list">
+  <app-card-header>
+    <div class="flex justify-between items-center">
+      <h3 class="text-lg font-semibold text-gray-800">
+        Lista de Productos en Promoción
+      </h3>
+      <app-button
+        *ngIf="canSubmitList(list)"
+        variant="primary"
+        size="sm"
+        (click)="submitList()"
+        [disabled]="list.items.length === 0"
+      >
+        Enviar Lista para Aprobación
+      </app-button>
+    </div>
+    <p class="text-sm text-gray-500 mt-1">
+      ID: {{ list.id }} - Estado:
+      <app-badge
+        [text]="list.status | titlecase"
+        [variant]="
+          list.status === 'EDICION'
+            ? 'warning'
+            : list.status === 'APROBACION'
+            ? 'primary'
+            : 'success'
+        "
+      ></app-badge>
+    </p>
+  </app-card-header>
+  <app-card-content>
+    <app-table [data]="list.items" [columns]="columns" class="mt-4">
+    </app-table>
+    <app-alert
+      *ngIf="list.items.length === 0 && list.status === 'EDICION'"
+      type="info"
+      message="Aún no has añadido productos a esta lista."
+      class="mt-4"
+    ></app-alert>
+    <app-alert
+      *ngIf="list.items.length === 0 && list.status !== 'EDICION'"
+      type="info"
+      message="No hay productos en esta lista."
+      class="mt-4"
+    ></app-alert>
+  </app-card-content>
+</app-card>
+
+<ng-template #priceCell let-value>
+  {{ value | currency : "USD" : "symbol" : "1.2-2" }}
+</ng-template>
+
+<ng-template #statusCell let-item>
+  <app-badge
+    [text]="item.status | titlecase"
+    [variant]="getBadgeVariant(item.status)"
+  ></app-badge>
+</ng-template>
+
+<ng-template #actionsCell let-item>
+  <div class="space-x-2">
+    <app-button
+      *ngIf="listStatus === 'EDICION' && item.status === 'rejected'"
+      variant="outline"
+      size="sm"
+      (click)="editRejectedItem(item)"
+      title="Editar Item Rechazado"
+    >
+      Editar Rechazado
+    </app-button>
+    <app-button
+      *ngIf="listStatus === 'EDICION'"
+      variant="destructive"
+      size="sm"
+      (click)="removeItem(item)"
+      title="Eliminar de la lista"
+    >
+      Eliminar
+    </app-button>
+  </div>
+</ng-template>

@@ -1,0 +1,52 @@
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <app-card class="w-full max-w-md">
+    <app-card-header>
+      <h2 class="text-2xl font-bold text-center text-gray-800">
+        Iniciar Sesión
+      </h2>
+    </app-card-header>
+    <app-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-4">
+        <app-input
+          type="text"
+          label="Usuario"
+          formControlName="username"
+          placeholder="tu_usuario"
+          [errorMessage]="
+            loginForm.get('username')?.hasError('required')
+              ? 'Este campo es requerido.'
+              : undefined
+          "
+        ></app-input>
+        <app-input
+          type="password"
+          label="Contraseña"
+          formControlName="password"
+          placeholder="********"
+          errorMessage="Este campo es requerido."
+        ></app-input>
+
+        <app-alert
+          *ngIf="errorMessage && !loginForm.dirty && !loginForm.touched"
+          type="error"
+          [message]="errorMessage"
+          class="mt-4"
+        >
+        </app-alert>
+
+        <app-button
+          type="submit"
+          variant="primary"
+          class="w-full !mt-6"
+          [disabled]="
+            loginForm.invalid ||
+            ((authService.isAuthenticated$ | async) === false &&
+              loginForm.pending)
+          "
+        >
+          Ingresar
+        </app-button>
+      </form>
+    </app-card-content>
+  </app-card>
+</div>

@@ -1,0 +1,16 @@
+<header class="bg-white shadow-sm">
+  <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+    <span class="text-xl font-semibold text-gray-700">Bayteq Promociones</span>
+    <app-button variant="outline" (click)="logout()">Salir</app-button>
+  </nav>
+</header>
+<main class="container mx-auto p-4">
+  <app-user-info-card
+    [user]="currentUser$ | async"
+    class="mb-6"
+  ></app-user-info-card>
+  <router-outlet></router-outlet>
+  <!-- For nested page content -->
+</main>
+
+<app-notification></app-notification>
