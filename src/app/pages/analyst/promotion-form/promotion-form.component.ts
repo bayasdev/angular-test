@@ -166,10 +166,6 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
               .get('promotionalPrice')
               ?.updateValueAndValidity({ emitEvent: false });
 
-            this.notificationService.info(
-              `Editando el producto: "${itemToEdit.name}". Por favor, modifíquelo y guarde los cambios.`
-            );
-
             this.cdr.detectChanges();
 
             Promise.resolve().then(() => {

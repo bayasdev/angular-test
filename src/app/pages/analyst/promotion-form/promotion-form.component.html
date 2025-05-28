@@ -100,7 +100,7 @@
           promotionItemForm.invalid ||
           !selectedProduct ||
           (currentPromotionList?.status !== 'EDICION' &&
-            !isEditingRejectedItem(selectedProduct.id || -1))
+            !isEditingMarkedItem(selectedProduct.id || -1))
         "
       >
         Añadir/Actualizar Producto
@@ -108,7 +108,7 @@
       <p
         *ngIf="
           currentPromotionList?.status !== 'EDICION' &&
-          !isEditingRejectedItem(selectedProduct?.id || -1)
+          !isEditingMarkedItem(selectedProduct?.id || -1)
         "
         class="text-xs text-yellow-600 text-center"
       >
