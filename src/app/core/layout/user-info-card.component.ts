@@ -24,23 +24,35 @@ import {
         </h3>
       </app-card-header>
       <app-card-content>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <p>
-            <span class="font-medium text-gray-600">Código:</span> {{ user.id }}
-          </p>
-          <p>
-            <span class="font-medium text-gray-600">Nombre:</span>
-            {{ user.name }}
-          </p>
-          <p>
-            <span class="font-medium text-gray-600">Email (Username):</span>
-            {{ user.username }}
-          </p>
-          <p>
-            <span class="font-medium text-gray-600">Rol:</span>
-            {{ user.roleCode | titlecase }}
-          </p>
-          <!-- Add RUC or other fields if available in User model and needed -->
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div class="space-y-2">
+            <p>
+              <span class="font-medium text-gray-600">Nombre:</span>
+              {{ user.name }}
+            </p>
+            <p>
+              <span class="font-medium text-gray-600">Email (Username):</span>
+              {{ user.username }}
+            </p>
+          </div>
+          <div class="space-y-2">
+            <p>
+              <span class="font-medium text-gray-600">Código:</span>
+              {{ user.id }}
+            </p>
+            <p>
+              <span class="font-medium text-gray-600">Rol:</span>
+              {{ user.roleCode | titlecase }}
+            </p>
+          </div>
+          <div class="flex items-center justify-center">
+            <img
+              *ngIf="user.picture?.large"
+              [src]="user.picture?.large"
+              alt="Foto de perfil"
+              class="w-20 h-20 rounded-full"
+            />
+          </div>
         </div>
       </app-card-content>
     </app-card>

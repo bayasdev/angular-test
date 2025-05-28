@@ -4,4 +4,7 @@ export interface User {
   password?: string;
   roleCode: string;
   name: string;
+  picture?: {
+    large?: string;
+  };
 }

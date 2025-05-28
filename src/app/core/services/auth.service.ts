@@ -50,8 +50,9 @@ export class AuthService {
           const user: User = {
             id: apiUser.id,
             username: apiUser.username,
-            roleCode: apiUser.role, // Map role from API to roleCode
+            roleCode: apiUser.role,
             name: `${apiUser.name.first} ${apiUser.name.last}`,
+            picture: apiUser.picture,
           };
           return this.apiService.getRoles().pipe(
             map((roles) => {
