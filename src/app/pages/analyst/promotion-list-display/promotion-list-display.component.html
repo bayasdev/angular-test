@@ -46,7 +46,7 @@
   </app-card-content>
 </app-card>
 
-<ng-template #priceCell let-value>
+<ng-template #priceCell let-item let-value="value">
   {{ value | currency : "USD" : "symbol" : "1.2-2" }}
 </ng-template>
 

@@ -196,7 +196,7 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
     const promotionItem: PromotionItem = {
       ...this.selectedProduct,
       selectedQuantity: formValue.selectedQuantity,
-      promotionalPrice: formValue.promotionalPrice,
+      promotionalPrice: Number(formValue.promotionalPrice),
       status: 'pending',
       isEditable: true,
     };
