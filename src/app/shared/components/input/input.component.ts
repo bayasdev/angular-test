@@ -6,6 +6,7 @@ import {
   OnDestroy,
   ChangeDetectionStrategy,
   Optional,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,6 +16,7 @@ import {
   FormControl,
   FormGroupDirective,
   Validators,
+  AbstractControl,
 } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -46,6 +48,7 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
 
   control: FormControl = new FormControl();
   private _value: unknown;
+  private parentControl: AbstractControl | null = null;
   // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   onChange: (value: unknown) => void = (_value: unknown) => {};
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -54,26 +57,51 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(@Optional() private formGroupDirective: FormGroupDirective) {}
+  constructor(
+    @Optional() private formGroupDirective: FormGroupDirective,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     if (this.formGroupDirective && this.formControlName) {
-      const parentControl = this.formGroupDirective.form.get(
+      this.parentControl = this.formGroupDirective.form.get(
         this.formControlName
       );
-      if (parentControl) {
-        this.control.setValidators(parentControl.validator);
-        if (parentControl.disabled) {
+
+      if (this.parentControl) {
+        this.control.setValidators(this.parentControl.validator);
+        if (this.parentControl.disabled) {
           this.control.disable({ emitEvent: false });
         } else {
           this.control.enable({ emitEvent: false });
         }
+
+        // Sync the internal control with parent control state
+        this.parentControl.statusChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(() => {
+            // Sync validation state
+            if (this.parentControl?.errors) {
+              this.control.setErrors(this.parentControl.errors);
+            } else {
+              this.control.setErrors(null);
+            }
+            // Mark as touched/dirty to match parent
+            if (this.parentControl?.touched) {
+              this.control.markAsTouched({ onlySelf: true });
+            }
+            if (this.parentControl?.dirty) {
+              this.control.markAsDirty({ onlySelf: true });
+            }
+            this.cdr.markForCheck();
+          });
       } else {
         console.warn(
           `Control with name ${this.formControlName} not found in parent FormGroup for app-input.`
         );
       }
     }
+
     if (this.type === 'email' && !this.control.validator) {
       this.control.setValidators([Validators.email]);
     }
@@ -118,13 +146,19 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
   }
 
   get showError(): boolean {
-    if (!this.control) return false;
-    return (
-      this.control.invalid &&
-      (this.control.dirty ||
-        this.control.touched ||
-        (this.formGroupDirective && this.formGroupDirective.submitted))
-    );
+    // Use parent control if available, otherwise fall back to internal control
+    const controlToCheck = this.parentControl || this.control;
+
+    if (!controlToCheck) return false;
+
+    const hasCustomError = !!this.errorMessage;
+    const hasValidationError = controlToCheck.invalid;
+    const shouldShow =
+      controlToCheck.dirty ||
+      controlToCheck.touched ||
+      (this.formGroupDirective && this.formGroupDirective.submitted);
+
+    return (hasCustomError || hasValidationError) && shouldShow;
   }
 
   get inputClasses(): string {
@@ -137,19 +171,28 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
   }
 
   get displayedErrorMessage(): string | null {
-    if (!this.showError || !this.control) return null;
+    if (!this.showError) return null;
 
-    if (this.control.hasError('required')) return 'Este campo es requerido.';
-    if (this.control.hasError('minlength'))
-      return `Debe tener al menos ${this.control.errors?.['minlength']?.requiredLength} caracteres.`;
-    if (this.control.hasError('maxlength'))
-      return `No debe exceder los ${this.control.errors?.['maxlength']?.requiredLength} caracteres.`;
-    if (this.control.hasError('pattern')) return 'Formato inválido.';
-    if (this.control.hasError('min'))
-      return `El valor debe ser mayor o igual a ${this.control.errors?.['min']?.min}.`;
-    if (this.control.hasError('max'))
-      return `El valor debe ser menor o igual a ${this.control.errors?.['max']?.max}.`;
-    return this.errorMessage || 'Valor inválido.';
+    // Prioritize custom error message from parent
+    if (this.errorMessage) return this.errorMessage;
+
+    // Use parent control for error checking if available
+    const controlToCheck = this.parentControl || this.control;
+    if (!controlToCheck) return null;
+
+    if (controlToCheck.hasError('required')) return 'Este campo es requerido.';
+    if (controlToCheck.hasError('minlength'))
+      return `Debe tener al menos ${controlToCheck.errors?.['minlength']?.requiredLength} caracteres.`;
+    if (controlToCheck.hasError('maxlength'))
+      return `No debe exceder los ${controlToCheck.errors?.['maxlength']?.requiredLength} caracteres.`;
+    if (controlToCheck.hasError('pattern')) return 'Formato inválido.';
+    if (controlToCheck.hasError('min'))
+      return `El valor debe ser mayor o igual a ${controlToCheck.errors?.['min']?.min}.`;
+    if (controlToCheck.hasError('max'))
+      return `El valor debe ser menor o igual a ${controlToCheck.errors?.['max']?.max}.`;
+    if (controlToCheck.hasError('email')) return 'Email inválido.';
+
+    return 'Valor inválido.';
   }
 
   onInput(): void {

@@ -27,20 +27,23 @@ import {
         <div class="grid grid-cols-3 gap-4 text-sm">
           <div class="space-y-2">
             <p>
-              <span class="font-medium text-gray-600">Nombre:</span>
+              <span class="font-bold text-gray-600">Nombre:</span>
               {{ user.name.first }} {{ user.name.last }}
             </p>
             <p>
-              <span class="font-medium text-gray-600">Email (Username):</span>
+              <span class="font-bold text-gray-600">Usuario:</span>
               {{ user.username }}
             </p>
           </div>
           <div class="space-y-2">
             <p>
-              <span class="font-medium text-gray-600">Código:</span>
+              <span class="font-bold text-gray-600">Código:</span>
               {{ user.id }}
             </p>
-            <p class="text-sm text-gray-500">{{ user.role | titlecase }}</p>
+            <p>
+              <span class="font-bold text-gray-600">Rol:</span>
+              {{ user.role | titlecase }}
+            </p>
           </div>
           <div class="flex items-center justify-center">
             <img

@@ -1,7 +1,7 @@
 <app-card class="mb-6">
   <app-card-header>
     <h3 class="text-lg font-semibold text-gray-800">
-      Añadir Producto a Promoción
+      {{ formTitle }}
     </h3>
   </app-card-header>
   <app-card-content>
@@ -67,21 +67,7 @@
         label="Cantidad en Promoción"
         formControlName="selectedQuantity"
         placeholder="Ej: 10"
-        [errorMessage]="
-          promotionItemForm.get('selectedQuantity')?.hasError('required')
-            ? 'Cantidad requerida.'
-            : promotionItemForm.get('selectedQuantity')?.hasError('min')
-            ? 'Cantidad debe ser al menos ' +
-              selectedProduct?.minPromotionQuantity +
-              '.'
-            : promotionItemForm.get('selectedQuantity')?.hasError('max')
-            ? 'Cantidad no debe exceder ' +
-              selectedProduct?.maxPromotionQuantity +
-              '.'
-            : promotionItemForm.get('selectedQuantity')?.hasError('pattern')
-            ? 'Cantidad debe ser un número entero positivo.'
-            : 'Cantidad inválida.'
-        "
+        [errorMessage]="getErrorMessage('selectedQuantity')"
       ></app-input>
 
       <app-input
@@ -89,27 +75,24 @@
         label="Precio Promocional (por unidad)"
         formControlName="promotionalPrice"
         placeholder="Ej: 99.99"
-        [errorMessage]="promotionalPriceErrorMessage"
+        [errorMessage]="getErrorMessage('promotionalPrice')"
       ></app-input>
 
-      <app-button
-        type="submit"
-        variant="primary"
-        class="w-full !mt-6"
-        [disabled]="
-          promotionItemForm.invalid ||
-          !selectedProduct ||
-          (currentPromotionList?.status !== 'EDICION' &&
-            !isEditingMarkedItem(selectedProduct.id || -1))
-        "
-      >
-        Añadir/Actualizar Producto
-      </app-button>
+      <div class="flex gap-4 !mt-6">
+        <app-button type="submit" variant="primary" [disabled]="!canSubmit">
+          {{ submitButtonText }}
+        </app-button>
+        <app-button
+          type="button"
+          variant="secondary"
+          (click)="resetForm()"
+          [disabled]="!selectedProduct"
+        >
+          {{ cancelButtonText }}
+        </app-button>
+      </div>
       <p
-        *ngIf="
-          currentPromotionList?.status !== 'EDICION' &&
-          !isEditingMarkedItem(selectedProduct?.id || -1)
-        "
+        *ngIf="currentPromotionList?.status !== 'EDICION' && !isEditMode"
         class="text-xs text-yellow-600 text-center"
       >
         La lista no está en modo 'EDICIÓN'. Solo los items rechazados pueden ser

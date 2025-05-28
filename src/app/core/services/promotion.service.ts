@@ -1,10 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  PromotionList,
-  /* PromotionListStatus */
-} from '../models/promotion-list.model';
+import { PromotionList } from '../models/promotion-list.model';
 import { PromotionItem } from '../models/promotion-item.model';
 import { LocalStorageService } from './local-storage.service';
 import { AuthService } from './auth.service';
@@ -48,7 +45,10 @@ export class PromotionService {
         lastUpdatedBy: this.authService.getCurrentUserSnapshot()?.id,
       };
       this.currentPromotionListSubject.next(currentList);
-      this.saveListToStorage(currentList);
+      // Only save to storage if list is not in EDICION state
+      if (currentList.status !== 'EDICION') {
+        this.saveListToStorage(currentList);
+      }
     }
   }
 
@@ -63,7 +63,7 @@ export class PromotionService {
       lastUpdatedBy: this.authService.getCurrentUserSnapshot()?.id,
     };
     this.currentPromotionListSubject.next(newList);
-    this.saveListToStorage(newList);
+    // Don't save to storage until submitted
     return newList;
   }
 
@@ -140,12 +140,18 @@ export class PromotionService {
         status: 'pending' as 'pending' | 'approved' | 'rejected',
         isEditable: false,
       }));
-      this.updateList({
-        status: 'APROBACION',
+      const updatedList: PromotionList = {
+        ...currentList,
+        status: 'APROBACION' as const,
         items: allItemsPending,
         submittedAt: new Date(),
         submittedBy: this.authService.getCurrentUserSnapshot()?.id,
-      });
+        lastUpdatedAt: new Date(),
+        lastUpdatedBy: this.authService.getCurrentUserSnapshot()?.id,
+      };
+      this.currentPromotionListSubject.next(updatedList);
+      // Save to storage when submitted
+      this.saveListToStorage(updatedList);
     } else {
       throwError(
         () => new Error('List is empty or not in a submittable state.')

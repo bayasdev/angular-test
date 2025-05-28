@@ -33,7 +33,7 @@ export class TableComponent<T> implements OnInit, OnChanges {
   @Input() data: T[] = [];
   @Input() class = ''; // Allow passing additional Tailwind classes for the table container
   @Input() tableClass = 'w-full';
-  @Input() tableContainerClass = '';
+  @Input() tableContainerClass = 'overflow-x-auto';
   @Input() enableRowClick = false;
   @Output() rowClicked = new EventEmitter<T>();
 
