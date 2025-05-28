@@ -70,6 +70,15 @@
     </app-button>
     <app-button
       *ngIf="listStatus === 'EDICION'"
+      variant="outline"
+      size="sm"
+      (click)="editItem(item)"
+      title="Editar Item"
+    >
+      Editar
+    </app-button>
+    <app-button
+      *ngIf="listStatus === 'EDICION'"
       variant="destructive"
       size="sm"
       (click)="removeItem(item)"

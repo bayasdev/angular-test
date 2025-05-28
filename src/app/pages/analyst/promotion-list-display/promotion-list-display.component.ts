@@ -136,6 +136,20 @@ export class PromotionListDisplayComponent
     }
   }
 
+  editItem(item: PromotionItem): void {
+    if (this.listStatus === 'EDICION') {
+      const updatedItem = { ...item, isEditable: true };
+      this.promotionService.updateItem(updatedItem);
+      this.notificationService.info(
+        `Editando el producto: "${item.name}". Por favor, modifíquelo en el formulario de arriba.`
+      );
+    } else {
+      this.notificationService.warning(
+        'Solo se pueden editar productos cuando la lista está en edición.'
+      );
+    }
+  }
+
   editRejectedItem(item: PromotionItem): void {
     if (item.status === 'rejected' && this.listStatus === 'EDICION') {
       // Mark item as editable for the form component to pick up and prefill

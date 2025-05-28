@@ -31,7 +31,7 @@ import { Product } from '../../../core/models/product.model';
 import { PromotionItem } from '../../../core/models/promotion-item.model';
 import { PromotionList } from '../../../core/models/promotion-list.model';
 import { Observable, Subject, of } from 'rxjs';
-import { map, takeUntil, tap, filter, switchMap } from 'rxjs/operators';
+import { map, takeUntil, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-promotion-form',
@@ -63,6 +63,8 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
 
   currentPromotionList: PromotionList | null = null;
   private destroy$ = new Subject<void>();
+  isPrefillingForm = false;
+  private editingItemId: number | null = null;
 
   ngOnInit(): void {
     this.promotionItemForm = this.fb.group({
@@ -83,63 +85,150 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((list) => {
         this.currentPromotionList = list;
-        this.cdr.detectChanges(); // Update view if list changes (e.g. status)
+        if (list && list.items) {
+          const itemToEdit = list.items.find(
+            (item) => item.isEditable === true
+          );
+          if (itemToEdit) {
+            const formProductId = this.promotionItemForm.get('product')?.value;
+            const formQuantity =
+              this.promotionItemForm.get('selectedQuantity')?.value;
+            const formPrice =
+              this.promotionItemForm.get('promotionalPrice')?.value;
+
+            const needsPrefill =
+              formProductId !== itemToEdit.id ||
+              (formProductId === itemToEdit.id &&
+                (formQuantity !== itemToEdit.selectedQuantity ||
+                  formPrice !== itemToEdit.promotionalPrice));
+
+            if (needsPrefill && !this.isPrefillingForm) {
+              this.prefillForm(itemToEdit);
+            }
+          }
+        }
       });
 
     this.promotionItemForm
       .get('product')
       ?.valueChanges.pipe(
         takeUntil(this.destroy$),
-        tap(() => {
-          this.selectedProduct = null;
-          // Reset dependent fields when product changes
-          this.promotionItemForm
-            .get('selectedQuantity')
-            ?.setValue(null, { emitEvent: false });
-          this.promotionItemForm
-            .get('promotionalPrice')
-            ?.setValue(null, { emitEvent: false });
-          this.promotionItemForm.get('selectedQuantity')?.clearValidators();
-          this.promotionItemForm.get('promotionalPrice')?.clearValidators();
-          this.promotionItemForm
-            .get('selectedQuantity')
-            ?.updateValueAndValidity({ emitEvent: false });
-          this.promotionItemForm
-            .get('promotionalPrice')
-            ?.updateValueAndValidity({ emitEvent: false });
-        }),
-        filter((productId) => productId !== null),
-        switchMap((productId) =>
-          this.products$.pipe(
+        switchMap((productId) => {
+          if (productId === null) {
+            return of(null);
+          }
+          return this.products$.pipe(
             map((products) => products.find((p) => p.id === productId) || null)
-          )
-        )
+          );
+        })
       )
       .subscribe((product) => {
+        const previousSelectedProduct = this.selectedProduct;
         this.selectedProduct = product;
-        if (product) {
+
+        if (this.isPrefillingForm) {
+          const currentFormProductId =
+            this.promotionItemForm.get('product')?.value;
+          const itemToEdit = this.currentPromotionList?.items.find(
+            (item) =>
+              item.isEditable === true && item.id === currentFormProductId
+          );
+
+          if (itemToEdit && product && product.id === itemToEdit.id) {
+            this.promotionItemForm.patchValue(
+              {
+                selectedQuantity: itemToEdit.selectedQuantity,
+                promotionalPrice: itemToEdit.promotionalPrice,
+              },
+              { emitEvent: false }
+            );
+
+            this.promotionItemForm
+              .get('selectedQuantity')
+              ?.setValidators([
+                Validators.required,
+                Validators.min(product.minPromotionQuantity),
+                Validators.max(product.maxPromotionQuantity),
+                Validators.pattern(/^[1-9][0-9]*$/),
+              ]);
+            this.promotionItemForm
+              .get('promotionalPrice')
+              ?.setValidators([
+                Validators.required,
+                Validators.min(product.minPromotionPrice),
+                (control: AbstractControl) =>
+                  Validators.max(product.listPrice - 0.01)(control),
+              ]);
+            this.promotionItemForm
+              .get('selectedQuantity')
+              ?.updateValueAndValidity({ emitEvent: false });
+            this.promotionItemForm
+              .get('promotionalPrice')
+              ?.updateValueAndValidity({ emitEvent: false });
+
+            this.notificationService.info(
+              `Editando el producto: "${itemToEdit.name}". Por favor, modifíquelo y guarde los cambios.`
+            );
+
+            this.cdr.detectChanges();
+
+            Promise.resolve().then(() => {
+              this.isPrefillingForm = false;
+              const itemProcessedForPrefill = {
+                ...itemToEdit,
+                isEditable: false,
+              };
+              this.promotionService.updateItem(itemProcessedForPrefill);
+            });
+          } else {
+            this.isPrefillingForm = false;
+          }
+        } else {
+          if (product?.id !== previousSelectedProduct?.id) {
+            this.promotionItemForm
+              .get('selectedQuantity')
+              ?.setValue(null, { emitEvent: false });
+            this.promotionItemForm
+              .get('promotionalPrice')
+              ?.setValue(null, { emitEvent: false });
+          }
+
+          if (product) {
+            this.promotionItemForm
+              .get('selectedQuantity')
+              ?.setValidators([
+                Validators.required,
+                Validators.min(product.minPromotionQuantity),
+                Validators.max(product.maxPromotionQuantity),
+                Validators.pattern(/^[1-9][0-9]*$/),
+              ]);
+            this.promotionItemForm
+              .get('promotionalPrice')
+              ?.setValidators([
+                Validators.required,
+                Validators.min(product.minPromotionPrice),
+                (control: AbstractControl) =>
+                  Validators.max(product.listPrice - 0.01)(control),
+              ]);
+          } else {
+            this.promotionItemForm
+              .get('selectedQuantity')
+              ?.setValidators([
+                Validators.required,
+                Validators.pattern(/^[1-9][0-9]*$/),
+              ]);
+            this.promotionItemForm
+              .get('promotionalPrice')
+              ?.setValidators([Validators.required, Validators.min(0.01)]);
+          }
           this.promotionItemForm
             .get('selectedQuantity')
-            ?.setValidators([
-              Validators.required,
-              Validators.min(product.minPromotionQuantity),
-              Validators.max(product.maxPromotionQuantity),
-              Validators.pattern(/^[1-9][0-9]*$/),
-            ]);
-          this.promotionItemForm.get('promotionalPrice')?.setValidators([
-            Validators.required,
-            Validators.min(product.minPromotionPrice),
-            (control: AbstractControl) =>
-              Validators.max(product.listPrice - 0.01)(control), // Ensure it's less than listPrice
-          ]);
+            ?.updateValueAndValidity();
+          this.promotionItemForm
+            .get('promotionalPrice')
+            ?.updateValueAndValidity();
+          this.cdr.detectChanges();
         }
-        this.promotionItemForm
-          .get('selectedQuantity')
-          ?.updateValueAndValidity();
-        this.promotionItemForm
-          .get('promotionalPrice')
-          ?.updateValueAndValidity();
-        this.cdr.detectChanges();
       });
   }
 
@@ -149,16 +238,22 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
   }
 
   isProductDisabled(productId: number): boolean {
-    if (!this.currentPromotionList || !this.currentPromotionList.items)
+    if (!this.currentPromotionList || !this.currentPromotionList.items) {
       return false;
+    }
     const itemInList = this.currentPromotionList.items.find(
       (item) => item.id === productId
     );
-    // Disable if product is in list and not a rejected, editable item
-    return (
-      !!itemInList &&
-      !(itemInList.status === 'rejected' && itemInList.isEditable)
-    );
+
+    if (!itemInList) {
+      return false; // Not in list, not disabled.
+    }
+
+    if (itemInList.isEditable === true) {
+      return false;
+    }
+
+    return true;
   }
 
   onSubmit(): void {
@@ -172,58 +267,75 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const isEditingExistingRejected = this.isEditingRejectedItem(
-      this.selectedProduct.id
-    );
-
-    // Check if product is already in list and not the one being edited (if it was rejected)
-    if (
-      this.currentPromotionList?.items.some(
-        (item) =>
-          item.id === this.selectedProduct!.id &&
-          item.id !==
-            (isEditingExistingRejected ? this.selectedProduct!.id : -1) &&
-          item.status !== 'rejected'
-      )
-    ) {
-      this.notificationService.warning(
-        'Este producto ya existe en la lista de promoción.'
-      );
-      return;
-    }
-
     const formValue = this.promotionItemForm.value;
-    const promotionItem: PromotionItem = {
-      ...this.selectedProduct,
+    const currentSelectedProductId = this.selectedProduct!.id;
+
+    const promotionItemPayload: PromotionItem = {
+      ...this.selectedProduct!,
       selectedQuantity: formValue.selectedQuantity,
       promotionalPrice: Number(formValue.promotionalPrice),
       status: 'pending',
-      isEditable: true,
+      isEditable: false, // isEditable is transient for prefill, not persisted as true
     };
 
     try {
-      if (
-        this.currentPromotionList &&
-        (this.currentPromotionList.status === 'EDICION' ||
-          isEditingExistingRejected)
-      ) {
-        this.promotionService.addItem(promotionItem);
-        this.notificationService.success(
-          `Producto "${promotionItem.name}" ${
-            isEditingExistingRejected ? 'actualizado' : 'añadido'
-          }.`
-        );
-        this.promotionItemForm.reset();
-        this.selectedProduct = null;
-        this.promotionItemForm
-          .get('product')
-          ?.setValue(null, { emitEvent: true }); // emit event to re-trigger productOptions update
-        this.cdr.detectChanges();
-      } else {
+      if (this.currentPromotionList?.status !== 'EDICION') {
         this.notificationService.error(
-          'No se puede añadir/actualizar el producto. La lista no está en modo de edición o el ítem no es un ítem rechazado editable válido.'
+          'La lista no está en modo de edición. No se pueden guardar los cambios.'
         );
+        return;
       }
+
+      const wasEditingSpecificItem = this.editingItemId !== null;
+
+      if (
+        wasEditingSpecificItem &&
+        currentSelectedProductId === this.editingItemId
+      ) {
+        // Case 1: True Update - User was editing an item, and submitted for that same item.
+        this.promotionService.updateItem(promotionItemPayload);
+        this.notificationService.success(
+          `Producto "${promotionItemPayload.name}" actualizado.`
+        );
+      } else {
+        // Case 2: Add New Item OR User was editing item X, but switched to item Y in dropdown.
+        // In both sub-scenarios, we are effectively trying to add/validate currentSelectedProductId.
+
+        const productAlreadyInList = this.currentPromotionList.items.some(
+          (item) => item.id === currentSelectedProductId
+        );
+
+        if (productAlreadyInList) {
+          this.notificationService.warning(
+            'Este producto ya existe en la lista de promoción.'
+          );
+          return;
+        }
+
+        // If it doesn't exist, add it.
+        this.promotionService.addItem(promotionItemPayload);
+        if (
+          wasEditingSpecificItem &&
+          currentSelectedProductId !== this.editingItemId
+        ) {
+          this.notificationService.success(
+            `Producto "${promotionItemPayload.name}" añadido (se cambió el producto durante la edición).`
+          );
+        } else {
+          this.notificationService.success(
+            `Producto "${promotionItemPayload.name}" añadido.`
+          );
+        }
+      }
+
+      // Common post-submission cleanup
+      this.promotionItemForm.reset();
+      this.selectedProduct = null;
+      this.editingItemId = null; // Reset editing state
+      this.promotionItemForm
+        .get('product')
+        ?.setValue(null, { emitEvent: true });
+      this.cdr.detectChanges();
     } catch (error: unknown) {
       this.notificationService.error(
         (error instanceof Error ? error.message : String(error)) ||
@@ -232,13 +344,26 @@ export class PromotionFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  isEditingRejectedItem(productId: number): boolean {
-    if (!this.currentPromotionList || !this.currentPromotionList.items)
+  isEditingMarkedItem(productId: number | undefined): boolean {
+    if (
+      !this.currentPromotionList ||
+      !this.currentPromotionList.items ||
+      !productId
+    ) {
       return false;
+    }
     const item = this.currentPromotionList.items.find(
       (i) => i.id === productId
     );
-    return !!item && item.status === 'rejected' && item.isEditable === true;
+    return !!item && item.isEditable === true;
+  }
+
+  prefillForm(itemToEdit: PromotionItem): void {
+    this.isPrefillingForm = true;
+    this.editingItemId = itemToEdit.id; // Set the ID of the item being edited
+    this.promotionItemForm
+      .get('product')
+      ?.setValue(itemToEdit.id, { emitEvent: true });
   }
 
   get promotionalPriceErrorMessage(): string {
