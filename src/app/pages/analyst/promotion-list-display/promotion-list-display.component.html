@@ -4,15 +4,37 @@
       <h3 class="text-lg font-semibold text-gray-800">
         Lista de Productos en Promoción
       </h3>
-      <app-button
-        *ngIf="canSubmitList(list)"
-        variant="primary"
-        size="sm"
-        (click)="submitList()"
-        [disabled]="list.items.length === 0"
-      >
-        Enviar Lista para Aprobación
-      </app-button>
+      <div class="flex gap-2">
+        <app-button
+          *ngIf="list.status === 'EDICION'"
+          variant="secondary"
+          size="sm"
+          (click)="onAddProduct()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 mr-1"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Agregar Producto
+        </app-button>
+        <app-button
+          *ngIf="canSubmitList(list)"
+          variant="primary"
+          size="sm"
+          (click)="submitList()"
+          [disabled]="list.items.length === 0"
+        >
+          Enviar Lista para Aprobación
+        </app-button>
+      </div>
     </div>
     <p class="text-sm text-gray-500 mt-1">
       ID: {{ list.id }} - Estado:
@@ -29,7 +51,20 @@
     </p>
   </app-card-header>
   <app-card-content>
-    <app-table [data]="list.items" [columns]="columns" class="mt-4">
+    <app-table
+      [data]="list.items"
+      [columns]="columns"
+      class="mt-4"
+      [additionalRows]="
+        isAddingNewProduct
+          ? [
+              {
+                template: newProductFormTemplate
+              }
+            ]
+          : []
+      "
+    >
     </app-table>
     <app-alert
       *ngIf="list.items.length === 0 && list.status === 'EDICION'"
@@ -46,8 +81,123 @@
   </app-card-content>
 </app-card>
 
+<ng-template #newProductFormTemplate let-data let-column="column">
+  <ng-container [ngSwitch]="column.key">
+    <ng-container *ngSwitchCase="'name'">
+      <app-select
+        [formControl]="newProductSelectControl"
+        [options]="(productOptions$ | async) || []"
+        placeholder="Seleccionar Producto"
+        [errorMessage]="getNewProductFormErrorMessage('product')"
+      ></app-select>
+    </ng-container>
+    <ng-container *ngSwitchCase="'selectedQuantity'">
+      <app-input
+        type="number"
+        [formControl]="newProductQuantityControl"
+        placeholder="Cantidad"
+        [errorMessage]="getNewProductFormErrorMessage('selectedQuantity')"
+      ></app-input>
+    </ng-container>
+    <ng-container *ngSwitchCase="'listPrice'">
+      <div class="px-3 py-2">
+        {{
+          (selectedProduct?.listPrice
+            | currency : "USD" : "symbol" : "1.2-2") || "-"
+        }}
+      </div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'promotionalPrice'">
+      <app-input
+        type="number"
+        [formControl]="newProductPromotionalPriceControl"
+        placeholder="Precio Promo"
+        [errorMessage]="getNewProductFormErrorMessage('promotionalPrice')"
+      ></app-input>
+    </ng-container>
+    <ng-container *ngSwitchCase="'status'">
+      <div class="text-center">
+        <app-badge text="Pending" variant="warning"></app-badge>
+      </div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'actions'">
+      <div class="flex justify-end gap-2">
+        <app-button
+          variant="primary"
+          size="sm"
+          (click)="onSaveNewProduct()"
+          [disabled]="newProductForm.invalid"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 mr-1"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Guardar
+        </app-button>
+        <app-button
+          variant="secondary"
+          size="sm"
+          (click)="onCancelAddProduct()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 mr-1"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Cancelar
+        </app-button>
+      </div>
+    </ng-container>
+  </ng-container>
+</ng-template>
+
 <ng-template #priceCell let-item let-value="value">
   {{ value | currency : "USD" : "symbol" : "1.2-2" }}
+</ng-template>
+
+<ng-template #editableQuantityCell let-item>
+  <div *ngIf="!isEditing(item)" class="px-3 py-2">
+    {{ item.selectedQuantity }}
+  </div>
+  <app-input
+    *ngIf="isEditing(item)"
+    type="number"
+    [formControl]="quantityControl"
+    placeholder="Cantidad"
+    [errorMessage]="getEditFormErrorMessage('selectedQuantity', item)"
+    (keydown.enter)="onSaveItem(item)"
+    (keydown.escape)="onCancelEdit()"
+  ></app-input>
+</ng-template>
+
+<ng-template #editablePriceCell let-item>
+  <div *ngIf="!isEditing(item)" class="px-3 py-2">
+    {{ item.promotionalPrice | currency : "USD" : "symbol" : "1.2-2" }}
+  </div>
+  <app-input
+    *ngIf="isEditing(item)"
+    type="number"
+    [formControl]="priceControl"
+    placeholder="Precio Promo"
+    [errorMessage]="getEditFormErrorMessage('promotionalPrice', item)"
+    (keydown.enter)="onSaveItem(item)"
+    (keydown.escape)="onCancelEdit()"
+  ></app-input>
 </ng-template>
 
 <ng-template #statusCell let-item>
@@ -58,33 +208,122 @@
 </ng-template>
 
 <ng-template #actionsCell let-item>
-  <div class="space-x-2">
-    <app-button
-      *ngIf="listStatus === 'EDICION' && item.status === 'rejected'"
-      variant="outline"
-      size="sm"
-      (click)="editRejectedItem(item)"
-      title="Editar Item Rechazado"
-    >
-      Editar Rechazado
-    </app-button>
-    <app-button
-      *ngIf="listStatus === 'EDICION'"
-      variant="outline"
-      size="sm"
-      (click)="editItem(item)"
-      title="Editar Item"
-    >
-      Editar
-    </app-button>
-    <app-button
-      *ngIf="listStatus === 'EDICION'"
-      variant="destructive"
-      size="sm"
-      (click)="removeItem(item)"
-      title="Eliminar de la lista"
-    >
-      Eliminar
-    </app-button>
+  <div class="flex items-center justify-end gap-2" [formGroup]="itemEditForm">
+    <!-- View/Edit/Delete Buttons -->
+    <ng-container *ngIf="!isEditing(item)">
+      <app-button
+        *ngIf="listStatus === 'EDICION' && item.status === 'rejected'"
+        variant="secondary"
+        size="sm"
+        (click)="onEditItemClicked(item)"
+        title="Editar Item Rechazado"
+        class="flex items-center gap-1 min-w-[100px] justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+          />
+        </svg>
+        Editar
+      </app-button>
+      <app-button
+        *ngIf="
+          listStatus === 'EDICION' &&
+          item.status !== 'rejected' &&
+          item.status !== 'approved'
+        "
+        variant="secondary"
+        size="sm"
+        (click)="onEditItemClicked(item)"
+        title="Editar Item"
+        class="flex items-center gap-1 min-w-[100px] justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+          />
+        </svg>
+        Editar
+      </app-button>
+      <app-button
+        *ngIf="listStatus === 'EDICION'"
+        variant="destructive"
+        size="sm"
+        (click)="removeItem(item)"
+        title="Eliminar de la lista"
+        class="flex items-center gap-1 min-w-[100px] justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        Eliminar
+      </app-button>
+    </ng-container>
+
+    <!-- Save/Cancel Buttons -->
+    <ng-container *ngIf="isEditing(item)">
+      <app-button
+        variant="primary"
+        size="sm"
+        (click)="onSaveItem(item)"
+        title="Guardar Cambios"
+        [disabled]="itemEditForm.invalid"
+        class="flex items-center gap-1 min-w-[100px] justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        Guardar
+      </app-button>
+      <app-button
+        variant="secondary"
+        size="sm"
+        (click)="onCancelEdit()"
+        title="Cancelar Edición"
+        class="flex items-center gap-1 min-w-[100px] justify-center"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        Cancelar
+      </app-button>
+    </ng-container>
   </div>
 </ng-template>

@@ -13,12 +13,6 @@
     </app-button>
   </div>
 
-  <app-promotion-form
-    *ngIf="currentPromotionList$ | async as list; else noListTpl"
-  >
-    <!-- Promotion form will interact with the current list via PromotionService -->
-  </app-promotion-form>
-
   <app-promotion-list-display
     *ngIf="currentPromotionList$ | async as list; else noListTpl"
   >

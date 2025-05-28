@@ -219,4 +219,37 @@ export class PromotionService {
   getPromotionListSnapshot(): PromotionList | null {
     return this.currentPromotionListSubject.getValue();
   }
+
+  getProductDetails(itemId: number): PromotionItem | undefined {
+    const currentList = this.currentPromotionListSubject.getValue();
+    if (!currentList) return undefined;
+    // In a real app, this might need to fetch from a product master list
+    // if PromotionItem doesn't have all details like min/max quantities/prices.
+    // For now, we assume PromotionItem has all necessary details.
+    return currentList.items.find((item) => item.id === itemId);
+  }
+
+  getItemById(itemId: number): PromotionItem | undefined {
+    const currentList = this.currentPromotionListSubject.getValue();
+    if (!currentList) return undefined;
+    return currentList.items.find((item) => item.id === itemId);
+  }
+
+  setItemToEdit(itemId: number): void {
+    const currentList = this.currentPromotionListSubject.getValue();
+    if (currentList && currentList.status === 'EDICION') {
+      const items = currentList.items.map(
+        (item) =>
+          item.id === itemId
+            ? { ...item, isEditable: true }
+            : { ...item, isEditable: false } // Ensure only one item is editable
+      );
+      this.updateList({ items });
+      // No direct notification here, the component initiating edit should inform user.
+    } else {
+      console.warn(
+        'Cannot set item to edit: List not in EDICION state or does not exist.'
+      );
+    }
+  }
 }

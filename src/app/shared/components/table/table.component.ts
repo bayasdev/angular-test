@@ -35,6 +35,10 @@ export class TableComponent<T> implements OnInit, OnChanges {
   @Input() tableClass = 'w-full';
   @Input() tableContainerClass = 'overflow-x-auto';
   @Input() enableRowClick = false;
+  @Input() additionalRows: {
+    template: TemplateRef<unknown>;
+    data?: unknown;
+  }[] = [];
   @Output() rowClicked = new EventEmitter<T>();
 
   displayedColumns: string[] = [];

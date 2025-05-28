@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PromotionService } from '../../core/services/promotion.service';
-import { PromotionFormComponent } from './promotion-form/promotion-form.component';
 import { PromotionListDisplayComponent } from './promotion-list-display/promotion-list-display.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { PromotionList } from '../../core/models/promotion-list.model';
@@ -15,7 +14,6 @@ import { AlertComponent } from '../../shared/components/alert/alert.component';
   standalone: true,
   imports: [
     CommonModule,
-    PromotionFormComponent,
     PromotionListDisplayComponent,
     ButtonComponent,
     AlertComponent,
