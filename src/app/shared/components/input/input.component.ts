@@ -44,13 +44,13 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
   @Input() readonly = false;
   @Input() class = '';
 
+  control: FormControl = new FormControl();
   private _value: unknown;
   // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   onChange: (value: unknown) => void = (_value: unknown) => {};
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   onTouched: () => void = () => {};
   isDisabled = false;
-  control: FormControl = new FormControl();
 
   private destroy$ = new Subject<void>();
 
@@ -58,23 +58,26 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
 
   ngOnInit() {
     if (this.formGroupDirective && this.formControlName) {
-      const formControl = this.formGroupDirective.form.get(
+      const parentControl = this.formGroupDirective.form.get(
         this.formControlName
       );
-      if (formControl instanceof FormControl) {
-        this.control = formControl;
+      if (parentControl) {
+        this.control.setValidators(parentControl.validator);
+        if (parentControl.disabled) {
+          this.control.disable({ emitEvent: false });
+        } else {
+          this.control.enable({ emitEvent: false });
+        }
       } else {
         console.warn(
-          `Control with name ${this.formControlName} not found or not a FormControl. Initializing a new FormControl for app-input.`
+          `Control with name ${this.formControlName} not found in parent FormGroup for app-input.`
         );
-        if (this.type === 'email') {
-          this.control.setValidators([Validators.email]);
-          this.control.updateValueAndValidity();
-        }
       }
-    } else {
-      // No formGroupDirective, initialize simple control without email validation by default
     }
+    if (this.type === 'email' && !this.control.validator) {
+      this.control.setValidators([Validators.email]);
+    }
+    this.control.updateValueAndValidity({ emitEvent: false });
 
     this.control.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -90,9 +93,7 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
 
   writeValue(value: unknown): void {
     this._value = value;
-    if (this.control) {
-      this.control.setValue(value, { emitEvent: false });
-    }
+    this.control.setValue(value, { emitEvent: false });
   }
 
   registerOnChange(fn: (value: unknown) => void): void {
@@ -105,12 +106,10 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
 
   setDisabledState?(isDisabled: boolean): void {
     this.isDisabled = isDisabled;
-    if (this.control) {
-      if (isDisabled) {
-        this.control.disable({ emitEvent: false });
-      } else {
-        this.control.enable({ emitEvent: false });
-      }
+    if (isDisabled) {
+      this.control.disable({ emitEvent: false });
+    } else {
+      this.control.enable({ emitEvent: false });
     }
   }
 
@@ -153,10 +152,7 @@ export class InputComponent implements ControlValueAccessor, OnInit, OnDestroy {
     return this.errorMessage || 'Valor inválido.';
   }
 
-  onInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this._value = value;
-    this.onChange(this._value);
+  onInput(): void {
     this.onTouched();
   }
 }

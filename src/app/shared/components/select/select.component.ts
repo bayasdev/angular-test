@@ -50,9 +50,9 @@ export class SelectComponent
   @Input() class = '';
   @Input() errorMessage = '';
 
+  control: FormControl = new FormControl();
   private _value: SelectOption['value'];
   isDisabled = false;
-  control: FormControl = new FormControl();
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   onChange: (value: SelectOption['value']) => void = () => {};
@@ -67,17 +67,24 @@ export class SelectComponent
 
   ngOnInit() {
     if (this.formGroupDirective && this.formControlName) {
-      const formControl = this.formGroupDirective.form.get(
+      const parentControl = this.formGroupDirective.form.get(
         this.formControlName
       );
-      if (formControl instanceof FormControl) {
-        this.control = formControl;
+      if (parentControl) {
+        this.control.setValidators(parentControl.validator);
+        if (parentControl.disabled) {
+          this.control.disable({ emitEvent: false });
+        } else {
+          this.control.enable({ emitEvent: false });
+        }
       } else {
         console.warn(
-          `Control with name ${this.formControlName} not found or not a FormControl for app-select.`
+          `Control with name ${this.formControlName} not found in parent FormGroup for app-select.`
         );
       }
     }
+    this.control.updateValueAndValidity({ emitEvent: false });
+
     this.control.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((value) => {
@@ -92,10 +99,7 @@ export class SelectComponent
 
   writeValue(value: SelectOption['value']): void {
     this._value = value;
-    if (this.control) {
-      this.control.setValue(value, { emitEvent: false });
-    }
-    this.cdr.detectChanges();
+    this.control.setValue(value, { emitEvent: false });
   }
 
   registerOnChange(fn: (value: SelectOption['value']) => void): void {
@@ -108,12 +112,10 @@ export class SelectComponent
 
   setDisabledState?(isDisabled: boolean): void {
     this.isDisabled = isDisabled;
-    if (this.control) {
-      if (isDisabled) {
-        this.control.disable({ emitEvent: false });
-      } else {
-        this.control.enable({ emitEvent: false });
-      }
+    if (isDisabled) {
+      this.control.disable({ emitEvent: false });
+    } else {
+      this.control.enable({ emitEvent: false });
     }
   }
 
@@ -147,11 +149,7 @@ export class SelectComponent
     return this.errorMessage || 'Selección inválida.';
   }
 
-  onSelectChange(event: Event): void {
-    const selectElement = event.target as HTMLSelectElement;
-    const value = selectElement.value;
-    this._value = value;
-    this.onChange(this._value);
+  onSelectChange(): void {
     this.onTouched();
     this.cdr.detectChanges();
   }
